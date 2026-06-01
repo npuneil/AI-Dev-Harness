@@ -27,9 +27,10 @@ recommendation feeds the defaults below; the user can override every one.
 | 2 | `Local-only or Hybrid (adds cloud router) [Local/Hybrid]` | `Local` | Picks which reference harness (`src\LocalAIDevHarness` or `src\HybridAIDevHarness`) is copied as the starting point. |
 | 3 | `Build architecture [x64/ARM64/both]` | matches detected silicon | Sets `<RuntimeIdentifiers>` in the generated csproj. `both` produces win-x64 + win-arm64. |
 | 4 | `Pick an industry focus`<br/>numbered list of 10 + `N/A` | `N/A` | Seeds the system-prompt prelude with industry context (e.g. "operate inside a regulated clinical environment"). If user also says N/A to use cases, the generator stamps out the catalogue tabs for that industry. |
-| 5 | `Modality (text-only, vision+text, or both) [text/vision/both]` | `text` | `text` generates `StreamingChatView` pages only. `vision` / `both` adds vision pages with a file picker + image preview. |
+| 5 | `Modality (text / vision / audio / all)` | `text` | `text` generates `StreamingChatView` pages only. `vision` adds image-picker pages. `audio` adds audio-picker pages with Transcribe / Translate modes. `all` adds both. (Legacy value `both` is accepted as an alias for `vision`.) |
 | 6 | `Foundry Local TEXT model alias (or N/A for detected default)` | silicon-aware default (`phi-4-mini` Intel/AMD/unknown, `qwen2.5-3b` Qualcomm) | Baked into the demo's `AppHost.cs` as the default model alias. User can still change it later via Settings. |
-| 7 | (only if modality != text) `Foundry Local VISION model alias (or N/A for default)` | `phi-3.5-vision` | Baked into each vision page as `VisionModelAlias`. |
+| 7 | (only if modality includes vision) `Foundry Local VISION model alias (or N/A for default)` | `phi-3.5-vision` | Baked into each vision page as `VisionModelAlias`. |
+| 7b | (only if modality includes audio) `Audio (Whisper) model alias for transcription/translation (or N/A for default)` | `whisper-base` | Baked into each audio page as `AudioModelAlias`. Each audio page exposes a `Transcribe` / `Translate (to English)` mode selector. |
 | 8 | `Start with Mock mode ON? (safe for live demos) [yes/no]` | `no` | If `yes`, the generated `AppHost.cs` sets `Settings.UseMock = true` in its static constructor so the first launch is always safe. |
 | 9 | `Identified use cases - one per line` (multiline, end with blank line, or single `N/A`) | `N/A` | Drives tab generation (see below). |
 
@@ -52,9 +53,9 @@ Industry != N/A       AND UseCases given     ->  one tab per use case, system pr
 Industry == N/A       AND UseCases given     ->  one tab per use case, generic prompts
 ```
 
-Vision tabs are added in two cases:
-- Modality = `vision` or `both` AND the industry catalogue includes a vision tab (currently: Insurance "Photo Notes").
-- Modality = `vision` or `both` AND the user supplied use cases — one extra "Image Notes" vision tab is appended.
+Vision/Audio tabs are added in two cases:
+- Modality includes vision/audio AND the industry catalogue includes a matching tab (currently: Insurance "Photo Notes" - vision; Healthcare "Visit Audio" - audio; Legal "Deposition Audio" - audio).
+- Modality includes vision/audio AND the user supplied use cases - an extra "Image Notes" (vision) and/or "Audio Notes" (audio) tab is appended.
 
 ## What the generator stamps out
 
@@ -100,9 +101,10 @@ Every prompt has a matching parameter, so the same flow can be replayed:
   -Source Local `
   -Architecture x64 `
   -Industry 'Healthcare' `
-  -Modality both `
+  -Modality all `
   -ModelAlias phi-4-mini `
   -VisionModelAlias phi-3.5-vision `
+  -AudioModelAlias whisper-base `
   -MockByDefault `
   -UseCases @('Triage incoming patients','Summarise shift handoff','Family-friendly update') `
   -InitGit `

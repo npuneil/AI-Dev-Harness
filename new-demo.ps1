@@ -18,9 +18,10 @@ param(
     [ValidateSet('Local','Hybrid')] [string] $Source,
     [ValidateSet('x64','ARM64','both')] [string] $Architecture,
     [string] $Industry,
-    [ValidateSet('text','vision','both')] [string] $Modality,
+    [ValidateSet('text','vision','audio','all','both')] [string] $Modality,
     [string] $ModelAlias,
     [string] $VisionModelAlias,
+    [string] $AudioModelAlias,
     [string[]] $UseCases,
     [string[]] $Tabs,
     [switch] $MockByDefault,
@@ -85,7 +86,8 @@ $IndustryCatalog = @{
         Tabs    = @(
             @{ Name='Triage';        Prompt='Summarise the chart into a triage acuity (ESI 1-5) with one-line reasoning. Output JSON: {esi, reasoning}.' },
             @{ Name='Shift Handoff'; Prompt='Produce an SBAR shift-handoff summary from the visit notes.' },
-            @{ Name='Family Update'; Prompt='Translate the latest clinical update into plain language for a worried family member at a 6th-grade reading level.' }
+            @{ Name='Family Update'; Prompt='Translate the latest clinical update into plain language for a worried family member at a 6th-grade reading level.' },
+            @{ Name='Visit Audio';   Prompt='Transcribe the patient-visit audio, then produce a structured SOAP note. Flag anything that sounds like a medication or allergy mention for clinician review.'; Audio=$true }
         )
     }
     'Banking & Finance' = @{
@@ -150,7 +152,8 @@ $IndustryCatalog = @{
         Context = 'You assist a paralegal. Output is for internal drafting only and is not legal advice.'
         Tabs    = @(
             @{ Name='Clause Extractor'; Prompt='Extract material clauses (parties, term, fees, termination, IP) from the supplied contract excerpt as JSON.' },
-            @{ Name='Drafting Coach';   Prompt='Rewrite the supplied paragraph in plain English while preserving legal intent.' }
+            @{ Name='Drafting Coach';   Prompt='Rewrite the supplied paragraph in plain English while preserving legal intent.' },
+            @{ Name='Deposition Audio'; Prompt='Transcribe the deposition audio verbatim with speaker turns where identifiable, then summarise the key admissions.'; Audio=$true }
         )
     }
 }
@@ -188,13 +191,24 @@ if (-not $Industry) {
     }
 }
 
-if (-not $Modality)   { $Modality   = Read-Choice "Modality (text-only, vision+text, or both)" @('text','vision','both') 'text' }
+if (-not $Modality)   { $Modality   = Read-Choice "Modality (text, vision, audio, or all)" @('text','vision','audio','all') 'text' }
+# Back-compat: 'both' used to mean text+vision; treat it as text+vision only (NOT audio).
+if ($Modality -eq 'both') { $Modality = 'vision' }
+$hasVision = ($Modality -eq 'vision' -or $Modality -eq 'all')
+$hasAudio  = ($Modality -eq 'audio'  -or $Modality -eq 'all')
 if (-not $ModelAlias) { $ModelAlias = Read-DefaultedString "Foundry Local TEXT model alias (or N/A for detected default)" $silicon.DefaultModel }
 if ($ModelAlias -ieq 'N/A') { $ModelAlias = $silicon.DefaultModel }
-if (($Modality -eq 'vision' -or $Modality -eq 'both') -and -not $VisionModelAlias) {
+if ($hasVision -and -not $VisionModelAlias) {
     $VisionModelAlias = Read-DefaultedString "Foundry Local VISION model alias (or N/A for default)" 'phi-3.5-vision'
     if ($VisionModelAlias -ieq 'N/A') { $VisionModelAlias = 'phi-3.5-vision' }
 }
+if ($hasAudio -and -not $AudioModelAlias) {
+    $AudioModelAlias = Read-DefaultedString "Audio (Whisper) model alias for transcription/translation (or N/A for default)" 'whisper-base'
+    if ($AudioModelAlias -ieq 'N/A') { $AudioModelAlias = 'whisper-base' }
+}
+# Make sure defaults exist even if their branch wasn't taken (string interpolation later expects them).
+if (-not $VisionModelAlias) { $VisionModelAlias = 'phi-3.5-vision' }
+if (-not $AudioModelAlias)  { $AudioModelAlias  = 'whisper-base' }
 
 if (-not $PSBoundParameters.ContainsKey('MockByDefault')) {
     $mockResp = Read-Choice "Start with Mock mode ON? (safe for live demos)" @('yes','no') 'no'
@@ -227,14 +241,17 @@ if (-not $Tabs -or $Tabs.Count -eq 0) {
         if ($industryEntry) {
             foreach ($t in $industryEntry.Tabs) {
                 $isVision = $t.ContainsKey('Vision') -and $t.Vision
-                if ($Modality -eq 'text' -and $isVision) { continue }
+                $isAudio  = $t.ContainsKey('Audio')  -and $t.Audio
+                if ($isVision -and -not $hasVision) { continue }
+                if ($isAudio  -and -not $hasAudio)  { continue }
                 $prompt = if ($industryContext) { "$industryContext`r`n`r`n$($t.Prompt)" } else { $t.Prompt }
-                $tabType = if ($isVision) { 'vision' } else { 'text' }
+                $tabType = if ($isVision) { 'vision' } elseif ($isAudio) { 'audio' } else { 'text' }
                 $tabsBuilt.Add("$($t.Name)|$tabType|$prompt")
             }
         } else {
             $tabsBuilt.Add("Chat|text|You are a concise, helpful on-device assistant for $Name. Answer in plain prose.")
-            if ($Modality -ne 'text') { $tabsBuilt.Add("Image Notes|vision|Describe the image the user attached in 3 bullet points.") }
+            if ($hasVision) { $tabsBuilt.Add("Image Notes|vision|Describe the image the user attached in 3 bullet points.") }
+            if ($hasAudio)  { $tabsBuilt.Add("Transcribe|audio|Transcribe and (if non-English) translate the audio the user attached. Return verbatim text first, then a 2-line summary.") }
         }
     } else {
         foreach ($uc in $UseCases) {
@@ -243,7 +260,8 @@ if (-not $Tabs -or $Tabs.Count -eq 0) {
             if ($industryContext) { $prompt = "$industryContext`r`n`r`n$prompt" }
             $tabsBuilt.Add("$ucName|text|$prompt")
         }
-        if ($Modality -ne 'text') { $tabsBuilt.Add("Image Notes|vision|Describe the image the user attached in the context of $Name. Be concise.") }
+        if ($hasVision) { $tabsBuilt.Add("Image Notes|vision|Describe the image the user attached in the context of $Name. Be concise.") }
+        if ($hasAudio)  { $tabsBuilt.Add("Audio Notes|audio|Transcribe the audio the user attached, then summarise the key points in the context of $Name.") }
     }
     $Tabs = $tabsBuilt.ToArray()
 }
@@ -323,6 +341,19 @@ if ((Test-Path $appHost) -and $ModelAlias) {
     Set-Content $appHost -Value $ah -NoNewline
 }
 
+# ---------- expose App.MainWindow (needed by vision/audio file pickers) -----
+$appXamlCs = Join-Path $targetDir "$identifier\App.xaml.cs"
+if (Test-Path $appXamlCs) {
+    $ax = Get-Content $appXamlCs -Raw
+    if ($ax -notmatch 'public static Window\?? MainWindow') {
+        # Add the static property next to the private field
+        $ax = $ax -replace '(private\s+Window\??\s+_window\s*;)', "`$1`r`n    public static Microsoft.UI.Xaml.Window? MainWindow { get; private set; }"
+        # And publish the instance after _window = new MainWindow();
+        $ax = $ax -replace '(_window\s*=\s*new\s+MainWindow\(\)\s*;)', "`$1`r`n        MainWindow = _window;"
+        Set-Content $appXamlCs -Value $ax -NoNewline
+    }
+}
+
 # ---------- prune inherited harness pages -----------------------------------
 $pagesDir = Join-Path $targetDir "$identifier\Pages"
 $keep = @('AboutPage','SettingsPage')
@@ -351,7 +382,7 @@ foreach ($entry in $Tabs) {
     $tabName = ($parts[0]).Trim()
     if ($parts.Count -ge 3) { $tabType = ($parts[1]).Trim().ToLower(); $prompt = ($parts[2]).Trim() }
     else { $tabType = 'text'; $prompt = if ($parts.Count -gt 1) { $parts[1].Trim() } else { 'You are a helpful assistant.' } }
-    if ($tabType -notin @('text','vision')) { $tabType = 'text' }
+    if ($tabType -notin @('text','vision','audio')) { $tabType = 'text' }
     $tabId   = Sanitize-Identifier $tabName
     $pageCls = "${tabId}Page"
     $tag     = $tabId.ToLower()
@@ -413,6 +444,86 @@ public sealed partial class $pageCls : Page
         Preview.Source = bmp;
         Answer.Text = "(vision-model integration stub) - wire FoundryLocalChatClient vision overload " +
                       "or your preferred OpenVINO GenAI path. System prompt and image are ready.";
+    }
+}
+"@
+    } elseif ($tabType -eq 'audio') {
+        $pageXaml = @"
+<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="$identifier.Pages.$pageCls"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Padding="16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="$tabName" FontSize="22" FontWeight="SemiBold" />
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Button x:Name="PickButton" Content="Pick audio..." Click="OnPick" />
+            <ComboBox x:Name="ModeBox" SelectedIndex="0" Width="180">
+                <ComboBoxItem Content="Transcribe" />
+                <ComboBoxItem Content="Translate (to English)" />
+            </ComboBox>
+            <Button x:Name="RunButton" Content="Run" Click="OnRun" IsEnabled="False" />
+            <TextBlock x:Name="PathText" VerticalAlignment="Center" Opacity="0.7" />
+        </StackPanel>
+        <MediaPlayerElement Grid.Row="2" x:Name="Player" AreTransportControlsEnabled="True"
+                            MaxHeight="80" HorizontalAlignment="Stretch" />
+        <TextBox Grid.Row="3" x:Name="Output" IsReadOnly="True" TextWrapping="Wrap" AcceptsReturn="True"
+                 PlaceholderText="Transcription / translation output will appear here." />
+    </Grid>
+</Page>
+"@
+        $pageCs = @"
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Windows.Media.Core;
+using Windows.Storage;
+using Windows.Storage.Pickers;
+
+namespace $identifier.Pages;
+
+public sealed partial class $pageCls : Page
+{
+    private const string AudioModelAlias = "$AudioModelAlias";
+    private const string SystemPrompt = @"$escPrompt";
+
+    private StorageFile? _file;
+
+    public $pageCls() { InitializeComponent(); }
+
+    private async void OnPick(object sender, RoutedEventArgs e)
+    {
+        var picker = new FileOpenPicker();
+        var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, hwnd);
+        picker.FileTypeFilter.Add(".wav");
+        picker.FileTypeFilter.Add(".mp3");
+        picker.FileTypeFilter.Add(".m4a");
+        picker.FileTypeFilter.Add(".flac");
+        picker.FileTypeFilter.Add(".ogg");
+        var file = await picker.PickSingleFileAsync();
+        if (file is null) return;
+        _file = file;
+        PathText.Text = file.Path;
+        Player.Source = MediaSource.CreateFromStorageFile(file);
+        RunButton.IsEnabled = true;
+    }
+
+    private void OnRun(object sender, RoutedEventArgs e)
+    {
+        if (_file is null) return;
+        var mode = (ModeBox.SelectedItem as ComboBoxItem)?.Content?.ToString() ?? "Transcribe";
+        Output.Text =
+            $"(audio-model integration stub)\n" +
+            $"Model alias: {AudioModelAlias}\n" +
+            $"Mode: {mode}\n" +
+            $"File: {_file.Path}\n\n" +
+            $"Wire your Whisper / Foundry Local audio path here. " +
+            $"The stub keeps the file handle, the mode (transcribe vs translate), and the system prompt ready.";
     }
 }
 "@
@@ -535,7 +646,8 @@ $tabsList = ($Tabs | ForEach-Object {
     $tPrompt = if ($p.Count -ge 3) { $p[2].Trim() } elseif ($p.Count -ge 2) { $p[1].Trim() } else { '' }
     "- **$tName** ($tType) - $tPrompt"
 }) -join "`r`n"
-$visionLine = if ($Modality -ne 'text') { "`r`n- Vision model alias: ``$VisionModelAlias``" } else { '' }
+$visionLine = if ($hasVision) { "`r`n- Vision model alias: ``$VisionModelAlias``" } else { '' }
+$audioLine  = if ($hasAudio)  { "`r`n- Audio  model alias: ``$AudioModelAlias``"  } else { '' }
 $generatedReadme = @"
 # $Name
 
@@ -544,7 +656,7 @@ Generated from **npuneil/AI-Dev-Harness** ($Source harness) on $(Get-Date -Forma
 - Industry focus: **$Industry**
 - Modality: **$Modality**
 - Silicon target: **$Architecture** (detected: $($silicon.Name))
-- Foundry Local text model alias: ``$ModelAlias``$visionLine
+- Foundry Local text model alias: ``$ModelAlias``$visionLine$audioLine
 - Mock mode default: **$MockByDefault** - flip in Settings tab or via ``AppHost.Settings.UseMock``
 
 ## Tabs
@@ -616,7 +728,8 @@ Write-Host "  Industry:     $Industry"
 Write-Host "  Modality:     $Modality"
 Write-Host "  Architecture: $Architecture"
 Write-Host "  Text model:   $ModelAlias"
-if ($Modality -ne 'text') { Write-Host "  Vision model: $VisionModelAlias" }
+if ($hasVision) { Write-Host "  Vision model: $VisionModelAlias" }
+if ($hasAudio)  { Write-Host "  Audio model:  $AudioModelAlias" }
 Write-Host "  Mock default: $MockByDefault"
 Write-Host "  Tabs:         $($Tabs.Count)"
 Write-Host ""
