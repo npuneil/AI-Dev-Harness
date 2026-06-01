@@ -1,0 +1,44 @@
+# Build outputs
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+ARM64/
+*.user
+*.suo
+*.cache
+.vs/
+.vscode/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.packages/
+
+# MSIX / signing
+*.pfx
+*.cer
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+AppPackages/
+BundleArtifacts/
+*.pri
+
+# Generated
+Generated Files/
+*.g.cs
+*.g.i.cs
+
+# Foundry Local model cache (machine-local)
+foundry_local_data/
+
+# Tooling
+TestResults/
+.idea/

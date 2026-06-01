@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="HybridAIDevHarness.Pages.CodeGenStudioPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Spacing="4">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="Hybrid Code-Gen Studio" />
+            <TextBlock Opacity="0.7" Text="Cloud plans + reviews, local SLM scaffolds + writes code/tests/docs. Watch each stage stream." />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <Button Content="Run hybrid pipeline" Style="{ThemeResource AccentButtonStyle}" Click="RunHybrid_Click" />
+            <Button Content="Replay as cloud-only" Click="RunCloudOnly_Click" />
+            <Button Content="Clear" Click="Clear_Click" />
+            <TextBlock x:Name="SpecText" VerticalAlignment="Center" Opacity="0.7" FontSize="12" Margin="16,0,0,0" />
+        </StackPanel>
+
+        <Border Grid.Row="2" Padding="12" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8">
+            <ScrollViewer>
+                <TextBlock x:Name="Output" TextWrapping="Wrap" FontFamily="Consolas" FontSize="12" />
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock x:Name="StatusText" Grid.Row="3" Text="ready." Opacity="0.7" FontSize="12" />
+    </Grid>
+</Page>

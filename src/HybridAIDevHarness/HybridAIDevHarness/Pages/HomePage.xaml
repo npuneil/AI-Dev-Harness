@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="HybridAIDevHarness.Pages.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:LocalAiDemos.Shared.Controls">
+    <ScrollViewer Padding="24,16,24,16">
+        <StackPanel Spacing="20" MaxWidth="780" HorizontalAlignment="Left">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="Hybrid AI Dev Harness" />
+            <TextBlock TextWrapping="Wrap" Opacity="0.9"
+                       Text="WinUI 3 starter for hybrid AI prototypes. Local SLM via Foundry Local + swappable cloud frontier (Azure OpenAI or Azure AI Foundry Inference, deterministic mock by default). Fork this app to jump-start a new hybrid demo."/>
+
+            <controls:CostTickerControl x:Name="Ticker" />
+
+            <Border Padding="16" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="What's wired up" FontWeight="SemiBold" />
+                    <TextBlock Text="• Foundry Local chat (warmed up at launch)" Opacity="0.9" />
+                    <TextBlock Text="• Cloud router: AzureOpenAIChatClient / AzureFoundryChatClient / MockFrontierClient" Opacity="0.9" />
+                    <TextBlock Text="• HybridRouter with per-stage targeting" Opacity="0.9" />
+                    <TextBlock Text="• Cost ticker showing local vs cloud spend in real time" Opacity="0.9" />
+                    <TextBlock Text="• Hybrid Chat, Code-Gen Studio, Cost Dashboard, About" Opacity="0.9" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Switching from mock to real cloud" FontWeight="SemiBold" />
+                    <TextBlock Text="1. Configure Azure OpenAI or Azure AI Foundry endpoint + key" Opacity="0.9" />
+                    <TextBlock Text="2. In code: AppHost.ConfigureAzureOpenAI(...) or ConfigureAzureFoundry(...)" Opacity="0.9" />
+                    <TextBlock Text="3. Restart the app — the router picks up the new cloud client" Opacity="0.9" />
+                    <TextBlock Text="See docs/PROMOTING-TO-PRODUCTION.md for the full handoff checklist." Opacity="0.7" FontSize="12" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -1,0 +1,15 @@
+{
+  "name": "term_deposit_api",
+  "version": "0.1.0",
+  "description": "Simple read-only API for a bank's term-deposit product catalog. Returns rates and minimum opening balances by tenor.",
+  "endpoints": [
+    { "method": "GET", "path": "/products", "description": "List all term-deposit products" },
+    { "method": "GET", "path": "/products/{id}", "description": "Get one product by id" },
+    { "method": "GET", "path": "/rates", "description": "Current rate sheet across tenors (3, 6, 12, 24 months)" }
+  ],
+  "constraints": [
+    "Stateless; backed by a JSON file in the same repo for the prototype.",
+    "Add OpenAPI annotations.",
+    "No write endpoints in v1."
+  ]
+}

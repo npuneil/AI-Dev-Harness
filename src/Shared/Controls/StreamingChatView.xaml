@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="LocalAiDemos.Shared.Controls.StreamingChatView"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid RowSpacing="8">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <Border Grid.Row="0" Background="{ThemeResource LayerFillColorDefaultBrush}"
+                CornerRadius="8" Padding="12">
+            <ListView x:Name="Transcript" SelectionMode="None" />
+        </Border>
+
+        <Grid Grid.Row="1" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="PromptBox" Grid.Column="0"
+                     PlaceholderText="Ask the on-device model…"
+                     AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48" />
+            <Button x:Name="SendButton" Grid.Column="1" Content="Send"
+                    Style="{ThemeResource AccentButtonStyle}" Click="Send_Click" />
+        </Grid>
+
+        <TextBlock x:Name="StatusText" Grid.Row="2" Text="ready."
+                   Opacity="0.7" FontSize="12" />
+    </Grid>
+</UserControl>

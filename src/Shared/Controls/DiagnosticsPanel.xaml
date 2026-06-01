@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="LocalAiDemos.Shared.Controls.DiagnosticsPanel"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Padding="16" Background="{ThemeResource LayerFillColorDefaultBrush}"
+            CornerRadius="8">
+        <StackPanel Spacing="6">
+            <TextBlock Text="Diagnostics" FontWeight="SemiBold" FontSize="16" />
+            <TextBlock x:Name="CpuText" Opacity="0.9" />
+            <TextBlock x:Name="ArchText" Opacity="0.7" FontSize="12" />
+            <TextBlock x:Name="ChatClientText" Opacity="0.9" />
+            <TextBlock x:Name="FoundryVersionText" Opacity="0.7" FontSize="12" />
+            <TextBlock x:Name="TotalsText" Opacity="0.9" />
+        </StackPanel>
+    </Border>
+</UserControl>

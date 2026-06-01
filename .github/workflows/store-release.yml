@@ -1,0 +1,80 @@
+name: store-release
+
+# Builds Release MSIX bundles for both harnesses, signs them with the cert from
+# encrypted secrets, then (optionally) submits to Microsoft Store via the
+# Submission API.
+#
+# Required GitHub secrets:
+#   SIGNING_CERT_BASE64     base64-encoded .pfx
+#   SIGNING_CERT_PASSWORD   .pfx password
+#   PARTNER_CENTER_TENANT_ID
+#   PARTNER_CENTER_CLIENT_ID
+#   PARTNER_CENTER_CLIENT_SECRET
+#   STORE_APP_ID_LOCAL      Store app product id for LocalAIDevHarness (optional)
+#   STORE_APP_ID_HYBRID     Store app product id for HybridAIDevHarness (optional)
+#
+# Trigger manually from the Actions tab once your Partner Center identity is set.
+
+on:
+  workflow_dispatch:
+    inputs:
+      submit:
+        description: "Submit to Microsoft Store (false = build + sign only)"
+        required: true
+        default: "false"
+
+jobs:
+  package:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: LocalAIDevHarness
+            solution: src/LocalAIDevHarness/LocalAIDevHarness.sln
+            project: src/LocalAIDevHarness/LocalAIDevHarness/LocalAIDevHarness.csproj
+            store_id_secret: STORE_APP_ID_LOCAL
+          - name: HybridAIDevHarness
+            solution: src/HybridAIDevHarness/HybridAIDevHarness.sln
+            project: src/HybridAIDevHarness/HybridAIDevHarness/HybridAIDevHarness.csproj
+            store_id_secret: STORE_APP_ID_HYBRID
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Decode signing cert
+        shell: pwsh
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.SIGNING_CERT_BASE64 }}")
+          [IO.File]::WriteAllBytes("${{ runner.temp }}\\signing.pfx", $bytes)
+
+      - name: Restore
+        run: dotnet restore ${{ matrix.solution }}
+
+      - name: Build + package (x64)
+        run: |
+          dotnet publish ${{ matrix.project }} -c Release -p:Platform=x64 -r win-x64 -p:WindowsPackageType=MSIX -p:AppxBundle=Always -p:AppxBundlePlatforms="x64|arm64" -p:PackageCertificateKeyFile=${{ runner.temp }}\\signing.pfx -p:PackageCertificatePassword=${{ secrets.SIGNING_CERT_PASSWORD }} --no-restore --nologo
+
+      - name: Build + package (ARM64)
+        run: |
+          dotnet publish ${{ matrix.project }} -c Release -p:Platform=ARM64 -r win-arm64 -p:WindowsPackageType=MSIX -p:AppxBundle=Always -p:AppxBundlePlatforms="x64|arm64" -p:PackageCertificateKeyFile=${{ runner.temp }}\\signing.pfx -p:PackageCertificatePassword=${{ secrets.SIGNING_CERT_PASSWORD }} --no-restore --nologo
+
+      - name: Upload MSIX artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}-msix
+          path: |
+            **/AppPackages/**/*.msix
+            **/AppPackages/**/*.msixbundle
+
+      - name: Submit to Microsoft Store
+        if: ${{ inputs.submit == 'true' && secrets[matrix.store_id_secret] != '' }}
+        shell: pwsh
+        run: |
+          Write-Host "Stub: would submit to Partner Center using StoreBroker / Submission API."
+          Write-Host "Wire up your preferred submission tool here (e.g. StoreBroker.NET, microsoft/msstore-cli)."
+          Write-Host "App id: ${{ secrets[matrix.store_id_secret] }}"

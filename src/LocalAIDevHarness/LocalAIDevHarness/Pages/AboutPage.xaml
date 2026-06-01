@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="LocalAIDevHarness.Pages.AboutPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:LocalAiDemos.Shared.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:LocalAIDevHarness.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,16">
+        <StackPanel Spacing="16" MaxWidth="780" HorizontalAlignment="Left">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="About" />
+            <controls:DiagnosticsPanel x:Name="Diag" />
+            <Button Content="Refresh" Click="Refresh_Click" />
+            <TextBlock TextWrapping="Wrap" Opacity="0.7"
+                       Text="Local AI Dev Harness — part of the WinUI 3 AI Dev Harness prototype pack. MIT licensed sample code; logos are placeholders, not trademarked marks." />
+        </StackPanel>
+    </ScrollViewer>
+</Page>

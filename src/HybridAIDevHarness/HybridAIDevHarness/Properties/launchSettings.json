@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "HybridAIDevHarness (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "HybridAIDevHarness (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

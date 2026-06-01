@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="HybridAIDevHarness.Pages.HybridChatPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Padding="24,16,24,16" RowSpacing="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Spacing="4">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="Hybrid chat" />
+            <TextBlock Opacity="0.7" Text="Pick a target per turn. Cost ticker on the Home tab shows the contrast." />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <RadioButton x:Name="TargetLocal" Content="Local SLM" GroupName="t" IsChecked="True" />
+            <RadioButton x:Name="TargetCloud" Content="Cloud frontier" GroupName="t" />
+            <TextBlock x:Name="LocalLabel" VerticalAlignment="Center" Opacity="0.7" FontSize="12" Margin="16,0,0,0" />
+            <TextBlock x:Name="CloudLabel" VerticalAlignment="Center" Opacity="0.7" FontSize="12" Margin="8,0,0,0" />
+        </StackPanel>
+
+        <Border Grid.Row="2" Padding="12" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8">
+            <ScrollViewer>
+                <TextBlock x:Name="Transcript" TextWrapping="Wrap" />
+            </ScrollViewer>
+        </Border>
+
+        <Grid Grid.Row="3" ColumnSpacing="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBox x:Name="PromptBox" PlaceholderText="Ask something..." AcceptsReturn="True" TextWrapping="Wrap" MinHeight="48" />
+            <Button Grid.Column="1" Content="Send" Style="{ThemeResource AccentButtonStyle}" Click="Send_Click" />
+        </Grid>
+
+        <TextBlock x:Name="StatusText" Grid.Row="4" Text="ready." Opacity="0.7" FontSize="12" />
+    </Grid>
+</Page>

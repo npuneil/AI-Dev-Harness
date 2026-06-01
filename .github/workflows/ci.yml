@@ -1,0 +1,35 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        solution:
+          - src/LocalAIDevHarness/LocalAIDevHarness.sln
+          - src/HybridAIDevHarness/HybridAIDevHarness.sln
+        platform: [x64]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 9
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Restore
+        run: dotnet restore ${{ matrix.solution }}
+
+      - name: Build (Debug)
+        run: dotnet build ${{ matrix.solution }} -c Debug -p:Platform=${{ matrix.platform }} --no-restore --nologo
+
+      - name: Build (Release)
+        run: dotnet build ${{ matrix.solution }} -c Release -p:Platform=${{ matrix.platform }} --no-restore --nologo

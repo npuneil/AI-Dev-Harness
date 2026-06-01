@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "LocalAIDevHarness (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "LocalAIDevHarness (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

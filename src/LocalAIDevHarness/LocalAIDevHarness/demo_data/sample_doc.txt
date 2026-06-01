@@ -1,0 +1,21 @@
+Acme Industries Q3 Field Operations Briefing
+=============================================
+
+Q3 saw 14 active field inspections across three regions: Houston (5), Calgary (4),
+and Sao Paulo (5). Two Houston inspections were paused after the structural-crack
+classifier flagged confidence between 60 and 74 percent, triggering the cloud
+escalation policy. Both were resolved on-device after additional photos were
+captured the following morning.
+
+Mean time to first finding dropped 38% versus Q2, attributed to the new
+voice-capture intake flow and improved photo classification presets. Notable
+outliers: two Calgary sites where the on-device translation step (English to
+Spanish) added roughly 12 seconds per report.
+
+Recommended Q4 actions:
+1. Roll out the structural-crack model update to all sites by week 2.
+2. Pilot the offline escalation queue with three Houston crews.
+3. Backfill site_inspection_api specs for the Calgary fleet.
+
+This document is sample data for the Local AI Dev Harness; no real customer
+data is referenced.

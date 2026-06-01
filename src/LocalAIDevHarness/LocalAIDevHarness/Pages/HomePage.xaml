@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="LocalAIDevHarness.Pages.HomePage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:controls="using:LocalAiDemos.Shared.Controls"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:LocalAIDevHarness.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer Padding="24,16,24,16">
+        <StackPanel Spacing="20" MaxWidth="780" HorizontalAlignment="Left">
+            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="Local AI Dev Harness" />
+            <TextBlock TextWrapping="Wrap" Opacity="0.9"
+                       Text="WinUI 3 starter for on-device AI prototypes. Foundry Local SDK only — zero cloud dependencies, zero data egress. Fork this app to jump-start a new local-only demo."/>
+
+            <controls:CostTickerControl x:Name="Ticker" />
+
+            <Border Padding="16" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="What's wired up" FontWeight="SemiBold" />
+                    <TextBlock Text="• Foundry Local chat client (auto-warmup at launch)" Opacity="0.9" />
+                    <TextBlock Text="• Silicon auto-detect → default model selection" Opacity="0.9" />
+                    <TextBlock Text="• Streaming chat control (see Chat tab)" Opacity="0.9" />
+                    <TextBlock Text="• Document summary pattern (see Doc Summary tab)" Opacity="0.9" />
+                    <TextBlock Text="• Diagnostics + cost log (see About tab)" Opacity="0.9" />
+                </StackPanel>
+            </Border>
+
+            <Border Padding="16" Background="{ThemeResource LayerFillColorDefaultBrush}" CornerRadius="8">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="Next steps for your prototype" FontWeight="SemiBold" />
+                    <TextBlock Text="1. Add a new NavigationViewItem in MainWindow.xaml" Opacity="0.9" />
+                    <TextBlock Text="2. Create a new Page in Pages/ — bind to AppHost.Chat" Opacity="0.9" />
+                    <TextBlock Text="3. Drop demo content into demo_data/" Opacity="0.9" />
+                    <TextBlock Text="4. See docs/VIBE-CODING-GUIDE.md" Opacity="0.7" FontSize="12" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>
