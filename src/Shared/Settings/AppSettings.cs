@@ -41,6 +41,24 @@ public sealed class AppSettings
         set => _backend.Set(nameof(TelemetryEnabled), value);
     }
 
+    /// <summary>
+    /// When true, every <see cref="AI.IChatClient"/> call is short-circuited to a
+    /// deterministic mock. Use for live demos where Foundry / cloud may flake,
+    /// or for quick UI iteration without warming a real model. Mirrors the
+    /// "Mock" toggle in surface-npu-demo and the Zava demos.
+    /// </summary>
+    public bool UseMock
+    {
+        get => _backend.Get(nameof(UseMock), false);
+        set
+        {
+            _backend.Set(nameof(UseMock), value);
+            MockToggled?.Invoke(this, value);
+        }
+    }
+
+    public event EventHandler<bool>? MockToggled;
+
     private static ISettingsBackend? TryGetPackagedBackend()
     {
         try { return new PackagedBackend(ApplicationData.Current.LocalSettings); }

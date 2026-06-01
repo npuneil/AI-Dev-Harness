@@ -28,6 +28,32 @@ public sealed partial class StreamingChatView : UserControl
     public string SystemPrompt { get; set; } =
         "You are a concise, helpful on-device assistant. Answer in plain prose.";
 
+    /// <summary>
+    /// Optionally bind to <see cref="LocalAiDemos.Shared.Settings.AppSettings"/> so the
+    /// "MOCK MODE" badge lights up automatically whenever the user flips the Settings toggle.
+    /// </summary>
+    public LocalAiDemos.Shared.Settings.AppSettings? Settings
+    {
+        get => _settings;
+        set
+        {
+            if (_settings is not null) _settings.MockToggled -= OnMockToggled;
+            _settings = value;
+            if (_settings is not null)
+            {
+                _settings.MockToggled += OnMockToggled;
+                MockBadge.Visibility = _settings.UseMock ? Visibility.Visible : Visibility.Collapsed;
+            }
+        }
+    }
+    private LocalAiDemos.Shared.Settings.AppSettings? _settings;
+
+    private void OnMockToggled(object? sender, bool isOn)
+    {
+        DispatcherQueue.TryEnqueue(() =>
+            MockBadge.Visibility = isOn ? Visibility.Visible : Visibility.Collapsed);
+    }
+
     public void Clear()
     {
         _history.Clear();

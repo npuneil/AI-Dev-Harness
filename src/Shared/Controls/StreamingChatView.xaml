@@ -29,5 +29,11 @@
 
         <TextBlock x:Name="StatusText" Grid.Row="2" Text="ready."
                    Opacity="0.7" FontSize="12" />
+
+        <Border Grid.Row="2" HorizontalAlignment="Right" CornerRadius="4" Padding="6,2"
+                Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                x:Name="MockBadge" Visibility="Collapsed">
+            <TextBlock Text="🎭 MOCK MODE" FontSize="10" FontWeight="SemiBold" />
+        </Border>
     </Grid>
 </UserControl>

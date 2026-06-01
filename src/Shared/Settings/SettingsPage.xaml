@@ -37,6 +37,19 @@
                 <ToggleSwitch x:Name="TelemetryToggle" />
             </StackPanel>
 
+            <Border Background="{ThemeResource SystemFillColorCautionBackgroundBrush}"
+                    CornerRadius="6" Padding="12">
+                <StackPanel Spacing="6">
+                    <TextBlock Text="🎭 Mock mode (live-demo safety net)"
+                               FontWeight="SemiBold" />
+                    <TextBlock TextWrapping="Wrap" FontSize="12" Opacity="0.85"
+                               Text="When on, every chat call is short-circuited to a deterministic stub. Foundry Local and any cloud client are not contacted. Flip on before going on stage; flip off to call the real models." />
+                    <ToggleSwitch x:Name="MockToggle"
+                                  OffContent="Real models"
+                                  OnContent="Mock — every call is faked" />
+                </StackPanel>
+            </Border>
+
             <Button Content="Save" Style="{ThemeResource AccentButtonStyle}" Click="Save_Click" />
             <TextBlock x:Name="SavedText" Opacity="0.7" FontSize="12" />
         </StackPanel>

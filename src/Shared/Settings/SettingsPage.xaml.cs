@@ -39,6 +39,7 @@ public sealed partial class SettingsPage : Page
             }
         }
         TelemetryToggle.IsOn = _settings.TelemetryEnabled;
+        MockToggle.IsOn = _settings.UseMock;
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
@@ -47,6 +48,9 @@ public sealed partial class SettingsPage : Page
         if (DeviceBox.SelectedItem is ComboBoxItem d) _settings.DevicePreference = d.Tag?.ToString() ?? "auto";
         if (ThemeBox.SelectedItem is ComboBoxItem t) _settings.ThemeName = t.Tag?.ToString() ?? "Default";
         _settings.TelemetryEnabled = TelemetryToggle.IsOn;
-        SavedText.Text = "saved. restart the app for theme + model changes.";
+        _settings.UseMock = MockToggle.IsOn;
+        SavedText.Text = _settings.UseMock
+            ? "saved. mock mode ON — chat will return deterministic stubs until you toggle it off."
+            : "saved. restart the app for theme + model changes.";
     }
 }

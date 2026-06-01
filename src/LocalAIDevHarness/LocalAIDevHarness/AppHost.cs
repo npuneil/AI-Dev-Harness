@@ -20,26 +20,47 @@ public static class AppHost
     public static AuditLogger Audit { get; } = new();
     public static DemoDataLoader DemoData { get; } = new();
 
-    private static IChatClient? _chat;
+    private static IChatClient? _real;
+    private static IChatClient? _mock;
     private static readonly object _gate = new();
 
+    static AppHost()
+    {
+        Settings.MockToggled += (_, _) => { /* getter re-evaluates on next access */ };
+    }
+
+    /// <summary>
+    /// Returns the mock client when <see cref="AppSettings.UseMock"/> is true,
+    /// otherwise the real Foundry-backed client. Both share the same
+    /// <see cref="CostLog"/> so the ticker doesn't lie.
+    /// </summary>
     public static IChatClient Chat
     {
         get
         {
-            if (_chat is not null) return _chat;
+            if (Settings.UseMock)
+            {
+                if (_mock is not null) return _mock;
+                lock (_gate)
+                {
+                    _mock ??= new MockChatClient("Local-Mock", CostLog);
+                    return _mock;
+                }
+            }
+
+            if (_real is not null) return _real;
             lock (_gate)
             {
-                if (_chat is not null) return _chat;
+                if (_real is not null) return _real;
                 var alias = Settings.ModelAlias;
                 if (string.IsNullOrWhiteSpace(alias))
                     alias = ModelCatalog.DefaultSmallFor(SiliconDetector.Current);
-                _chat = new FoundryLocalChatClient(
+                _real = new FoundryLocalChatClient(
                     appName: "LocalAIDevHarness",
                     modelAlias: alias,
                     costLog: CostLog,
                     logger: NullLogger<FoundryLocalChatClient>.Instance);
-                return _chat;
+                return _real;
             }
         }
     }

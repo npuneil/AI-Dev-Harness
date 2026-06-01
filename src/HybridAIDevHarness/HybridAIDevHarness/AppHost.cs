@@ -22,6 +22,7 @@ public static class AppHost
     public static DemoDataLoader DemoData { get; } = new();
 
     private static IChatClient? _local;
+    private static IChatClient? _localMock;
     private static ICloudChatClient? _cloud;
     private static HybridRouter? _router;
     private static readonly object _gate = new();
@@ -30,6 +31,16 @@ public static class AppHost
     {
         get
         {
+            if (Settings.UseMock)
+            {
+                if (_localMock is not null) return _localMock;
+                lock (_gate)
+                {
+                    _localMock ??= new MockChatClient("Local-Mock", CostLog);
+                    return _localMock;
+                }
+            }
+
             if (_local is not null) return _local;
             lock (_gate)
             {
@@ -50,12 +61,25 @@ public static class AppHost
     /// <summary>
     /// Cloud client. Defaults to <see cref="MockFrontierClient"/>; swap with
     /// <see cref="ConfigureAzureOpenAI"/> or <see cref="ConfigureAzureFoundry"/>
-    /// once real credentials are wired through Settings.
+    /// once real credentials are wired through Settings. When <see cref="AppSettings.UseMock"/>
+    /// is true, always returns the deterministic stub regardless of configuration.
     /// </summary>
     public static ICloudChatClient Cloud
     {
         get
         {
+            if (Settings.UseMock)
+            {
+                lock (_gate)
+                {
+                    if (_cloud is MockFrontierClient existing) return existing;
+                    var stub = new MockFrontierClient(CostLog);
+                    _cloud = stub;
+                    _router = new HybridRouter(Local, stub);
+                    return stub;
+                }
+            }
+
             if (_cloud is not null) return _cloud;
             lock (_gate)
             {
