@@ -5,6 +5,87 @@ your teammate before they touch the code. Each step shows the prompt, the
 default the user can accept by pressing Enter, and what the generator does
 with the answer.
 
+## Flowchart
+
+```mermaid
+flowchart TD
+    Start([pwsh .\new-demo.ps1]) --> Detect[Detect silicon via WMI<br/>-> default arch + model alias]
+    Detect --> Q1[Q1. Demo name<br/>default: MyAIDemo]
+    Q1 --> Q2{Q2. Source harness?}
+    Q2 -->|Local| LH[Copy src\LocalAIDevHarness]
+    Q2 -->|Hybrid| HH[Copy src\HybridAIDevHarness<br/>+ cloud router]
+    LH --> Q3
+    HH --> Q3
+    Q3{Q3. Architecture?} -->|x64| A1[RuntimeIdentifiers=win-x64]
+    Q3 -->|ARM64| A2[RuntimeIdentifiers=win-arm64]
+    Q3 -->|both| A3[win-x64;win-arm64]
+    A1 --> Q4
+    A2 --> Q4
+    A3 --> Q4
+
+    Q4{Q4. Industry?<br/>10 + N/A} --> Q5
+    Q5{Q5. Modality?}
+    Q5 -->|text| M1[text only]
+    Q5 -->|vision| M2[hasVision=true]
+    Q5 -->|audio| M3[hasAudio=true]
+    Q5 -->|all| M4[hasVision + hasAudio]
+
+    M1 --> Q6
+    M2 --> Q6
+    M3 --> Q6
+    M4 --> Q6
+
+    Q6[Q6. TEXT model alias<br/>default: silicon-aware<br/>phi-4-mini / qwen2.5-3b] --> Q7v{hasVision?}
+    Q7v -->|yes| Q7[Q7. VISION model alias<br/>default: phi-3.5-vision]
+    Q7v -->|no| Q7a
+    Q7 --> Q7a{hasAudio?}
+    Q7a -->|yes| Q7b[Q7b. AUDIO model alias<br/>default: whisper-base]
+    Q7a -->|no| Q8
+    Q7b --> Q8
+
+    Q8{Q8. Mock mode ON<br/>at first launch?}
+    Q8 -->|yes| MockOn[AppHost static ctor:<br/>Settings.UseMock = true]
+    Q8 -->|no| Q9
+    MockOn --> Q9
+
+    Q9{Q9. Use cases?<br/>multiline or N/A} --> TabLogic
+
+    TabLogic{Tab generation}
+    TabLogic -->|Industry=N/A + UseCases=N/A| TG1[1 generic Chat tab]
+    TabLogic -->|Industry set + UseCases=N/A| TG2[Industry catalogue tabs<br/>e.g. Healthcare:<br/>Triage / Shift Handoff /<br/>Family Update / Visit Audio*]
+    TabLogic -->|UseCases given| TG3[One tab per use case<br/>w/ industry-context prelude]
+
+    TG1 --> Append
+    TG2 --> Append
+    TG3 --> Append
+
+    Append{Append modality tabs}
+    Append -->|hasVision| AV[+ Image Notes vision tab]
+    Append -->|hasAudio| AA[+ Audio Notes tab<br/>Transcribe / Translate mode]
+    Append --> Stamp
+
+    Stamp[Stamp demos\Name\<br/>- sln/csproj<br/>- MainWindow nav + switch arms<br/>- Pages\TabPage.xaml + .cs<br/>- App.xaml.cs exposes MainWindow<br/>- Package.appxmanifest<br/>- README + .gitignore]
+
+    Stamp --> Q10{Q10. Init git?}
+    Q10 -->|no| Done
+    Q10 -->|yes| GitInit[git init -b main<br/>+ initial commit]
+    GitInit --> Q11{Q11. GitHub repo<br/>owner/name?}
+    Q11 -->|blank| Done
+    Q11 -->|filled| GhCreate[gh repo create --public<br/>--source=. --push]
+    GhCreate --> Done
+
+    Done([dotnet build and run])
+
+    classDef q fill:#e3f2fd,stroke:#1976d2,color:#000;
+    classDef action fill:#f3e5f5,stroke:#7b1fa2,color:#000;
+    classDef done fill:#c8e6c9,stroke:#388e3c,color:#000;
+    class Q1,Q2,Q3,Q4,Q5,Q6,Q7,Q7b,Q8,Q9,Q10,Q11,Q7v,Q7a,TabLogic,Append q;
+    class Detect,LH,HH,A1,A2,A3,M1,M2,M3,M4,MockOn,TG1,TG2,TG3,AV,AA,Stamp,GitInit,GhCreate action;
+    class Start,Done done;
+```
+
+\* Industry-catalogue audio tab only stamped when modality includes audio.
+
 ## Cold open
 
 ```
