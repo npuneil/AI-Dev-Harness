@@ -270,11 +270,13 @@ if (Test-Path $targetDir) { throw "$targetDir already exists. Pick a different n
 Write-Banner "Generating $identifier from $sourceHarness ..."
 
 # ---------- copy + rename ---------------------------------------------------
-# IMPORTANT: do not use robocopy /MIR here - we have seen it interact badly with
-# concurrent reads. Use straight Copy-Item which is also safer when source
-# subtrees contain build outputs we have already excluded.
-Copy-Item -Path $sourceDir -Destination $targetDir -Recurse -Force
-Get-ChildItem $targetDir -Recurse -Directory -Include @('bin','obj','AppPackages','BundleArtifacts','.vs') -ErrorAction SilentlyContinue | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue
+# Use robocopy explicitly for speed and exclusion control. /MIR removed because
+# it has been observed to delete files outside the destination in odd repo
+# layouts; /E is safer (copies subtrees including empties).
+$null = robocopy $sourceDir $targetDir /E /XD bin obj AppPackages BundleArtifacts .vs /NFL /NDL /NJH /NJS /NC /NS /NP
+# robocopy returns non-zero for "files copied" - that is success. Anything > 7 is a real error.
+if ($LASTEXITCODE -ge 8) { throw "robocopy failed with exit code $LASTEXITCODE" }
+$global:LASTEXITCODE = 0
 
 Get-ChildItem $targetDir -Recurse -File | Where-Object { $_.Name -like "$sourceHarness*" } | ForEach-Object {
     Rename-Item $_.FullName ($_.Name -replace [regex]::Escape($sourceHarness), $identifier)
@@ -463,9 +465,36 @@ if ((Test-Path $mainXaml) -and (Test-Path $mainCs)) {
         $mwXaml = [regex]::Replace($mwXaml, '<NavigationView\.MenuItems>.*?</NavigationView\.MenuItems>', $newMenu, [System.Text.RegularExpressions.RegexOptions]::Singleline)
         Set-Content $mainXaml -Value $mwXaml -NoNewline
     }
-    $mwCs = Get-Content $mainCs -Raw
-    $arms = $switchArms -join "`r`n"
-    $newMethod = @"
+
+    # Replace the whole MainWindow.xaml.cs - simpler and more robust than
+    # regex-patching the inherited harness file (whose switch body contains
+    # string-interpolation braces that confuse a brace-balanced regex).
+    $arms = ($switchArms -join "`r`n")
+    $newMain = @"
+using Microsoft.UI.Windowing;
+using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using $identifier.Pages;
+
+namespace $identifier;
+
+public sealed partial class MainWindow : Window
+{
+    public MainWindow()
+    {
+        InitializeComponent();
+        ExtendsContentIntoTitleBar = true;
+        SetTitleBar(AppTitleBar);
+        AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
+        AppWindow.SetIcon("Assets/AppIcon.ico");
+    }
+
+    private void TitleBar_PaneToggleRequested(TitleBar sender, object args)
+        => NavView.IsPaneOpen = !NavView.IsPaneOpen;
+
+    private void TitleBar_BackRequested(TitleBar sender, object args)
+        => NavFrame.GoBack();
+
     private void NavView_SelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
         if (args.IsSettingsSelected) { NavFrame.Navigate(typeof(SettingsPage)); return; }
@@ -473,14 +502,13 @@ if ((Test-Path $mainXaml) -and (Test-Path $mainCs)) {
         switch (item.Tag)
         {
 $arms
-            case "about": NavFrame.Navigate(typeof(Pages.AboutPage)); break;
-            default: NavFrame.Navigate(typeof(Pages.AboutPage)); break;
+            case "about": NavFrame.Navigate(typeof(AboutPage)); break;
+            default: NavFrame.Navigate(typeof(AboutPage)); break;
         }
     }
+}
 "@
-    $methodPattern = 'private void NavView_SelectionChanged\([^)]*\)\s*\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}'
-    $mwCs = [regex]::Replace($mwCs, $methodPattern, $newMethod, [System.Text.RegularExpressions.RegexOptions]::Singleline)
-    Set-Content $mainCs -Value $mwCs -NoNewline
+    Set-Content $mainCs -Value $newMain -NoNewline
 }
 
 # ---------- patch RuntimeIdentifiers ----------------------------------------
